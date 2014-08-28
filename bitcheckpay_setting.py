@@ -4,7 +4,7 @@ import os, sys
 settings = {}
 
 # Api URL
-settings['apiURL'] = 'https://bitcheckpay.jp/api/v1/'
+settings['apiURL'] = 'https://settlement.bitcheck.jp/api/v1/'
 
 # Api key you created at bitcheckpay
 settings['apiKey'] = 'API Key'
