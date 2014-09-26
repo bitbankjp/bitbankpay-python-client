@@ -4,9 +4,9 @@ import os, sys
 settings = {}
 
 # Api URL
-settings['apiURL'] = 'https://settlement.bitcheck.jp/api/v1/'
+settings['apiURL'] = 'https://api.bitbankpay.jp/api/v1/'
 
-# Api key you created at bitcheckpay
+# Api key you created at bitbankpay
 settings['apiKey'] = 'API Key'
 
 # BTC or JPY
@@ -64,7 +64,7 @@ class Logger(NullLogger):
         import logging, logging.handlers
 
         script_dir_path = os.path.abspath(os.path.dirname(__file__))
-        log_file_name = 'bitcheckpay.log'
+        log_file_name = 'bitbankpay.log'
         log_file_path = os.path.join(script_dir_path, log_file_name)
 
         logger = logging.getLogger()
