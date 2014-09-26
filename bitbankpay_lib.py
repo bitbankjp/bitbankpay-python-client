@@ -4,7 +4,7 @@ import base64
 import urllib2
 import urllib
 
-import bitcheckpay_setting
+import bitbankpay_setting
 
 def to_camel_case(snake_str, is_lower=True, to_uppers=['url']):
     """
@@ -40,7 +40,7 @@ def to_camel_case(snake_str, is_lower=True, to_uppers=['url']):
 
 def api_request(url, api_key, post_params=None, setting=None):
     """
-    For request to BitcheckPay API
+    For request to BitbankPay API
 
     :param url: string
     :param api_key: string
@@ -51,7 +51,7 @@ def api_request(url, api_key, post_params=None, setting=None):
     print post_params
 
     if setting is None:
-        setting = bitcheckpay_setting
+        setting = bitbankpay_setting
 
     logger = setting.get_logger()
 
@@ -75,6 +75,7 @@ def api_request(url, api_key, post_params=None, setting=None):
 
     response_string = ''
     try:
+        print url
         if post_params is None:
             response_string = opener.open(url).read()
         else:
@@ -94,22 +95,89 @@ def api_request(url, api_key, post_params=None, setting=None):
     return response
 
 
-def create_invoice(price, item_name,
-       currency = None,
-       redirect_url = None,
+def accept_bitcoin(api_key,id):
+
+    setting = bitbankpay_setting
+    logger = setting.get_logger()
+
+    post_params = {'uuid[]': id}
+
+    #request to api
+    cookie_handler = urllib2.HTTPCookieProcessor()
+    redirect_handler = urllib2.HTTPRedirectHandler()
+    opener = urllib2.build_opener(redirect_handler, cookie_handler)
+
+    api_key_base64 = base64.b64encode(api_key)
+
+    opener.addheaders = [
+        ('Content-Type', 'application/json'),
+        ('Authorization', 'Basic ' + api_key_base64),
+    ]
+
+    response_string = ''
+    try:
+        response_string = opener.open(setting.settings['apiURL'] + 'accept_bitcoin', urllib.urlencode(post_params)).read()
+    except Exception as e:
+        err_msg = str(e)
+        logger.error(err_msg)
+        return {'error': err_msg}
+
+    try:
+        response = json.loads(response_string)
+    except ValueError:
+        response = {'error': response_string}
+        logger.error(response_string)
+
+    return response
+
+def accept_jpy_yen(api_key,id):
+
+    setting = bitbankpay_setting
+    logger = setting.get_logger()
+
+    post_params = {'uuid[]': id}
+
+    #request to api
+    cookie_handler = urllib2.HTTPCookieProcessor()
+    redirect_handler = urllib2.HTTPRedirectHandler()
+    opener = urllib2.build_opener(redirect_handler, cookie_handler)
+
+    api_key_base64 = base64.b64encode(api_key)
+
+    opener.addheaders = [
+        ('Content-Type', 'application/json'),
+        ('Authorization', 'Basic ' + api_key_base64),
+    ]
+
+    response_string = ''
+    try:
+        response_string = opener.open(setting.settings['apiURL'] + 'accept_jpyyen', urllib.urlencode(post_params)).read()
+    except Exception as e:
+        err_msg = str(e)
+        logger.error(err_msg)
+        return {'error': err_msg}
+
+    try:
+        response = json.loads(response_string)
+    except ValueError:
+        response = {'error': response_string}
+        logger.error(response_string)
+
+    return response
+    
+def create_invoice(api_key,price,currency,item_name,
        order_id = None,
-       api_key = None,
-       setting = None,
+       setting = None
 ):
     """
     Create Invoice.
 
     DocTest
-    >>> import bitcheckpay_setting as test_setting
-    >>> test_setting.settings['apiURL'] = 'https://bitcheckpay.jp/api/v1/'
+    >>> import bitbankpay_setting as test_setting
+    >>> test_setting.settings['apiURL'] = 'https://api.bitbankpay.jp/api/v1/'
     >>> test_setting.settings['apiKey'] = 'API Key'
     >>> test_setting.settings['isLogging'] = False
-    >>> res = create_invoice(123.45, 'Test ITEM', currency='BTC', redirect_url='http://test/', order_id=123, setting=test_setting)
+    >>> res = create_invoice('API Key',100,'JPY','item_name','order_id')
     >>> res['result'] == 'OK'
     True
     >>> res['status'] == 'new'
@@ -119,17 +187,16 @@ def create_invoice(price, item_name,
     >>> res['btcPrice'] == '123.45'
     True
 
-    :param price:
-    :param item_name: item name.
-    :param currency: 'BTC' or 'JPY'. In None case, it is set from bitchekpay_setting.
-    :param redirect_url: In None case, it is set from bitchekpay_setting.
-    :param order_id:
     :param api_key: In None case, it is set from bitchekpay_setting.
+    :param price:
+    :param currency: 'BTC' or 'JPY'. In None case, it is set from bitchekpay_setting.
+    :param item_name: item name.
+    :param order_id:
     :param setting: setting module
     :return: response dict
     """
     if setting is None:
-        setting = bitcheckpay_setting
+        setting = bitbankpay_setting
     logger = setting.get_logger()
 
     import inspect
@@ -151,57 +218,12 @@ def create_invoice(price, item_name,
         api_key = setting.settings['apiKey']
 
     response = api_request(
-        setting.settings['apiURL'] + 'invoice/', api_key,
+        setting.settings['apiURL'] + 'invoice', api_key,
         post_params=post_params,
         setting=setting
     )
 
     return response
-
-
-def get_invoice(invoice_id,
-       api_key = None,
-       setting = None,
-):
-    """
-    Get Invoice.
-
-    DocTest
-    >>> import bitcheckpay_setting as test_setting
-    >>> test_setting.settings['apiURL'] = 'https://bitcheckpay.jp/api/v1/'
-    >>> test_setting.settings['apiKey'] = 'API Key'
-    >>> test_setting.settings['isLogging'] = False
-    >>> res_at_create = create_invoice(123.45, 'Test ITEM', currency='BTC', redirect_url='http://test/', order_id=123, setting=test_setting)
-    >>> res = get_invoice(res_at_create['id'], setting=test_setting)
-    >>> res['result'] == 'OK'
-    True
-    >>> res['status'] == 'new'
-    True
-    >>> res['currency'] == 'BTC'
-    True
-    >>> res['btcPrice'] == '123.45'
-    True
-
-    :param invoice_id:
-    :param api_key:
-    :param setting:
-    :return: response dict
-    """
-    if setting is None:
-        setting = bitcheckpay_setting
-    if api_key is None:
-        api_key = setting.settings['apiKey']
-
-    logger = setting.get_logger()
-
-    url = setting.settings['apiURL'] + 'invoice/' + invoice_id
-
-    logger.debug('url = ' + url)
-
-    response = api_request(url, api_key, setting=setting)
-
-    return response
-
 
 if __name__ == "__main__":
     import doctest
